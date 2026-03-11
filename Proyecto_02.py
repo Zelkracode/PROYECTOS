@@ -12,6 +12,18 @@ def main(page: ft.Page):
     # LISTA DEL CARRITO
     carrito = []
 
+    productos_precios = {
+        "Leche condensada 385gr": 28,
+        "Leche Monarca 500ml": 22,
+        "Coca-Cola 500ml": 18,
+        "Lechuga": 12,
+        "2 Jitomates": 25,
+        "1/2 Platano": 20,
+        "Frijoles 500gr": 35,
+        "Masa 385gr": 15,
+        "1/2 Tortillas": 22
+}
+
     # FUNCION PARA AGREGAR PRODUCTOS
     def agregar_carrito(producto):
         carrito.append(producto)
@@ -139,21 +151,21 @@ def main(page: ft.Page):
             [
 
                 ft.FilledButton(
-                    'Leche condensada 385gr',
+                    f"Leche condensada 385gr - ${productos_precios['Leche condensada 385gr']}",
                     bgcolor=ft.Colors.PINK_400,
                     color=ft.Colors.WHITE,
                     on_click=lambda e: agregar_carrito("Leche condensada 385gr")
                 ),
 
                 ft.FilledButton(
-                    'Galletas Príncipe 385gr',
+                     f"Leche Monarca 500ml - ${productos_precios['Leche Monarca 500ml']}",
                     bgcolor=ft.Colors.PINK_400,
                     color=ft.Colors.WHITE,
-                    on_click=lambda e: agregar_carrito("Galletas Príncipe 385gr")
+                    on_click=lambda e: agregar_carrito("Leche Monarca 500ml")
                 ),
 
                 ft.FilledButton(
-                    'Coca-Cola 500ml',
+                    f"Coca-Cola 500ml - ${productos_precios['Coca-Cola 500ml']}",
                     bgcolor=ft.Colors.PINK_400,
                     color=ft.Colors.WHITE,
                     on_click=lambda e: agregar_carrito("Coca-Cola 500ml")
@@ -201,24 +213,24 @@ def main(page: ft.Page):
             [
 
                 ft.FilledButton(
-                    'Lechuga',
+                    f"Lechuga - ${productos_precios['Lechuga']}",
                     bgcolor=ft.Colors.PINK_400,
                     color=ft.Colors.WHITE,
                     on_click=lambda e: agregar_carrito("Lechuga")
                 ),
 
                 ft.FilledButton(
-                    'Jitomate',
+                    f"2 Jitomates - ${productos_precios['2 Jitomates']}",
                     bgcolor=ft.Colors.PINK_400,
                     color=ft.Colors.WHITE,
-                    on_click=lambda e: agregar_carrito("Jitomate")
+                    on_click=lambda e: agregar_carrito("2 Jitomates")
                 ),
 
                 ft.FilledButton(
-                    'Platano',
+                    f"1/2 Platano - ${productos_precios['1/2 Platano']}",
                     bgcolor=ft.Colors.PINK_400,
                     color=ft.Colors.WHITE,
-                    on_click=lambda e: agregar_carrito("Platano")
+                    on_click=lambda e: agregar_carrito("1/2 Platano")
                 ),
 
             ],
@@ -263,24 +275,24 @@ def main(page: ft.Page):
             [
 
                 ft.FilledButton(
-                    'Frijoles',
+                    f"Frijoles 500gr - ${productos_precios['Frijoles 500gr']}",
                     bgcolor=ft.Colors.PINK_400,
                     color=ft.Colors.WHITE,
                     on_click=lambda e: agregar_carrito("Frijoles")
                 ),
 
                 ft.FilledButton(
-                    'Masa',
+                    f"Masa 385gr - ${productos_precios['Masa 385gr']}",
                     bgcolor=ft.Colors.PINK_400,
                     color=ft.Colors.WHITE,
-                    on_click=lambda e: agregar_carrito("Masa")
+                    on_click=lambda e: agregar_carrito("Masa 385gr")
                 ),
 
                 ft.FilledButton(
-                    'Tortillas',
+                    f"1/2 Tortillas - ${productos_precios['1/2 Tortillas']}",
                     bgcolor=ft.Colors.PINK_400,
                     color=ft.Colors.WHITE,
-                    on_click=lambda e: agregar_carrito("Tortillas")
+                    on_click=lambda e: agregar_carrito("1/2 Tortillas")
                 ),
 
             ],
@@ -350,6 +362,26 @@ def main(page: ft.Page):
     )
 )
 
+        total = 0
+
+        for producto in carrito:
+            total += productos_precios[producto]
+            
+        total_texto = ft.Text(
+        f"TOTAL: ${total}",
+        size=25,
+        weight="bold",
+        color=ft.Colors.WHITE
+)
+       
+        btn_pagar = ft.FilledButton(
+        "PAGAR",
+        icon=ft.Icons.PAYMENTS,
+        bgcolor=ft.Colors.GREEN,
+        color=ft.Colors.WHITE,
+        on_click=pagar
+)
+        
         btn_regresar = ft.TextButton(
             "Regresar",
             icon=ft.Icons.ARROW_BACK,
@@ -362,10 +394,42 @@ def main(page: ft.Page):
             on_click=vaciar_carrito
         )
 
-        page.add(titulo, lista, btn_regresar, btn_vaciar_carrito)
+        page.add(titulo, lista, total_texto,btn_pagar, btn_regresar, btn_vaciar_carrito)
 
         page.update()
 
     inicio()
+    
+    
+    def pagar(e):
+
+        page.controls.clear()
+
+        titulo = ft.Text(
+            "PAGO REALIZADO",
+            size=35,
+            weight="bold",
+            color=ft.Colors.WHITE
+        )
+
+        mensaje = ft.Text(
+            "✅ Gracias por tu compra\nTu pedido está en preparación",
+            size=20,
+            text_align=ft.TextAlign.CENTER,
+            color=ft.Colors.WHITE
+    )
+
+        btn_inicio = ft.FilledButton(
+            "Volver al inicio",
+            bgcolor=ft.Colors.PINK_400,
+            color=ft.Colors.WHITE,
+            on_click=lambda e: inicio()
+    )
+
+        carrito.clear()
+
+        page.add(titulo, mensaje, btn_inicio)
+
+    page.update()
 
 ft.app(target=main)
