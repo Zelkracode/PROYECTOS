@@ -10,7 +10,7 @@ for puerto in range(1,1025):
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    s.settimeout(1)
+    s.settimeout(0.5)
 
     resultado = s.connect_ex((host, puerto))
 
