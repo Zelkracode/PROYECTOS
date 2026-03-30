@@ -5,6 +5,7 @@
 
 ##### IMPORTACIONES
 import os
+import re
 from dotenv import load_dotenv
 import flet as ft
 from supabase import create_client, Client
@@ -24,6 +25,21 @@ else:
 
 def hashear_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
+
+def es_correo_valido(correo):
+    
+    patron = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(patron, correo) is not None
+
+def es_telefono_valido(telefono):
+    
+    return telefono.isdigit() and 8 <= len(telefono) <= 15
+
+def obtener_negocios():
+   
+    res = supabase.table("vendedores").select("nombre_negocio, direccion_negocio").execute()
+    return res.data
+
 
 #### REGISTRO DE USUARIO (Actualizado para Supabase)
 def registro_usuario_en_nube(nombre, usuario, correo, telefono, password):
@@ -48,8 +64,7 @@ def registro_vendedor_en_nube(propietario, negocio, direccion, correo, telefono,
         "password": pass_hash
     }).execute()
 
-##### LOGIN
-
+#### EXCEPCIONES
 
 def correo_ya_existe(correo):
     
@@ -80,6 +95,9 @@ def mostrar_mensaje_resgitro(page, texto, color=ft.Colors.RED_400):
     snack.open = True
     page.update()
     
+
+
+#### LOGIIINNN
     
 def login(page):
     page.controls.clear()
@@ -87,7 +105,7 @@ def login(page):
 
     intento_correo = ft.TextField(
         label='Correo',
-        width=200,
+        width=300,
         color=ft.Colors.WHITE,
         border_color=ft.Colors.WHITE,
         label_style=ft.TextStyle(color=ft.Colors.WHITE),
@@ -121,11 +139,17 @@ def login(page):
                 return
 
             # 2. Si no es vendedor, intentar buscar en Usuarios
+            # Dentro de la función login(page), en el apartado de usuarios:
             res_u = supabase.table("usuarios").select("*").eq("correo_usuario", intento_correo.value).eq("password", password_hasheada).execute()
             
             if res_u.data:
-                mostrar_mensaje_login(page, "¡Inicio de sesión exitoso!", ft.Colors.GREEN_400)
-                inicio_logeado_usuario(page)
+                datos_usuario = res_u.data[0]
+                nombre_usuario = datos_usuario.get("nombre_completo", "Usuario") # Extrae el nombre
+                
+                mostrar_mensaje_login(page, f"¡Bienvenido {nombre_usuario}!", ft.Colors.GREEN_400)
+                
+                # PASAMOS EL NOMBRE AQUÍ
+                inicio_logeado_usuario(page, nombre_usuario) 
             else:
                 print('Error: Credenciales incorrectas')
                 
@@ -199,53 +223,97 @@ def login(page):
 )   
 
 
+
+
+### LOGEO DE VENDEDOR
+
 def inicio_logeado_vendedor(page):
     pass
 
-def inicio_logeado_usuario(page):
+
+
+#### LOGEO DE USUARIO
+
+def inicio_logeado_usuario(page, nombre):
     page.controls.clear()
     
+    # --- Componentes de la Interfaz ---
     
-    pestaña_inicio = ft.Text('¡¡BIENVENIDO DE NUEVO!!',
-                             size=26,
-                             color=ft.Colors.WHITE,
-                             weight='bold')
-    
-    
-    
-    
-    
-    
-
-    page.add(
-        ft.Stack(
-        expand=True,
-        controls=[
-        ft.Container(
-            expand=True,
-            gradient=(
-                ft.LinearGradient(
-                    begin=ft.Alignment(0, -1),
-                    end=ft.Alignment(0, 1),
-                    colors=['#2c3e50', '#4ca1af', '#78ffd6']
-                    )
-                )
-            ),
-        ft.Container(
-            expand=True,
-            alignment=ft.Alignment(0, 0),
-            content=ft.Column(
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                alignment=ft.MainAxisAlignment.CENTER,
-                spacing=80,
-                controls=[
-                    pestaña_inicio
-                ]
-            )
-        )
-        ]
+    # 1. Barra de búsqueda (típica de apps de delivery)
+    busqueda = ft.TextField(
+        hint_text="¿Qué se te antoja hoy?",
+        prefix_icon=ft.Icons.SEARCH,
+        border_radius=15,
+        bgcolor=ft.Colors.WHITE,
+        color=ft.Colors.BLACK,
+        height=45,
+        expand=True
     )
-)
+
+    # 2. Generador de "Cards" para cada negocio
+    def crear_card_negocio(datos_vendedor):
+        return ft.Container(
+            content=ft.Column([
+                ft.Icon(ft.Icons.STOREFRONT, size=40, color=ft.Colors.BLUE_GREY_700),
+                ft.Text(datos_vendedor['nombre_negocio'], weight="bold", size=16),
+                ft.Text(datos_vendedor['direccion_negocio'], size=12, color=ft.Colors.GREY_700),
+                ft.ElevatedButton("Ver productos", color=ft.Colors.WHITE, bgcolor=ft.Colors.ORANGE_700)
+            ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            width=160,
+            height=180,
+            bgcolor=ft.Colors.WHITE,
+            border_radius=20,
+            padding=10,
+            shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.2, ft.Colors.BLACK))
+        )
+
+    # Obtenemos los datos reales de Supabase
+    lista_negocios_db = obtener_negocios()
+    
+    # Creamos la fila de negocios (puedes usar un Row con scroll o un GridView)
+    fila_negocios = ft.Row(
+        scroll=ft.ScrollMode.ALWAYS,
+        controls=[crear_card_negocio(n) for n in lista_negocios_db]
+    )
+
+    # --- Construcción del Layout ---
+    page.add(
+        ft.Container(
+            expand=True,
+            gradient=ft.LinearGradient(
+                begin=ft.Alignment(0, -1),
+                end=ft.Alignment(0, 1),
+                colors=['#2c3e50', '#4ca1af']
+            ),
+            padding=20,
+            content=ft.Column([
+                # Header: Perfil y Config
+                ft.Row([
+                    ft.Text(f"Hola, {nombre}", size=20, weight="bold", color=ft.Colors.WHITE),
+                    ft.Row([
+                        ft.IconButton(ft.Icons.PERSON, icon_color=ft.Colors.WHITE),
+                        ft.IconButton(ft.Icons.SETTINGS, icon_color=ft.Colors.WHITE),
+                    ])
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                
+                ft.Text("Explora MiSuperSuper", size=28, weight="bold", color=ft.Colors.WHITE),
+                
+                # Buscador
+                ft.Row([busqueda]),
+                
+                ft.Divider(height=20, color=ft.Colors.TRANSPARENT),
+                
+                # Sección de Negocios
+                ft.Text("Tiendas disponibles", size=18, weight="bold", color=ft.Colors.WHITE),
+                fila_negocios,
+                
+                # Puedes añadir más secciones como "Ofertas" o "Categorías"
+            ], scroll=ft.ScrollMode.AUTO)
+        )
+    )
+    page.update()
+
+
 
 
 ##### USUARIOS
@@ -283,6 +351,8 @@ def crear_usuario(page):
     
     input_telefono= ft.TextField(
         label='Telefono',
+        keyboard_type=ft.KeyboardType.NUMBER,
+        input_filter=ft.InputFilter(allow=True, regex_string=r"[0-9]", replacement_string=""),
         width=300,
         color=ft.Colors.WHITE,
         border_color=ft.Colors.WHITE,
@@ -304,13 +374,25 @@ def crear_usuario(page):
     #### REGISTRO EN DB
     
     def registro_en_db(e):
-        if not input_correo.value or not input_telefono.value or not input_contraseña.value:
-            print("Error: Todos los campos son obligatorios")
+        if not all([input_nombre.value, input_usuario.value, input_correo.value, input_telefono.value, input_contraseña.value]):
+            mostrar_mensaje_resgitro(page, "Error: Todos los campos son obligatorios", ft.Colors.RED_400)
             return
 
-        if correo_ya_existe(input_correo.value):
-            mostrar_mensaje_resgitro(page, "Este correo ya está registrado en MiSuperSuper", ft.Colors.ORANGE_700)
+        if not es_correo_valido(input_correo.value):
+            mostrar_mensaje_resgitro(page, "Formato de correo no válido (ej: usuario@correo.com)", ft.Colors.ORANGE_700)
             return
+        
+        if not es_telefono_valido(input_telefono.value):
+            mostrar_mensaje_resgitro(page, "El teléfono debe contener solo números (8-15 dígitos)", ft.Colors.ORANGE_700)
+            return
+        
+        
+        if correo_ya_existe(input_correo.value):
+            mostrar_mensaje_resgitro(page, "Este correo ya está registrado", ft.Colors.ORANGE_700)
+            return
+        
+
+        
         try:
             # 2. VALIDACIÓN
             registro_usuario_en_nube(
@@ -441,6 +523,8 @@ def crear_vendedor(page):
     
     input_telefono = ft.TextField(
         label='Telefono',
+        keyboard_type=ft.KeyboardType.NUMBER,
+        input_filter=ft.InputFilter(allow=True, regex_string=r"[0-9]", replacement_string=""),
         color=ft.Colors.WHITE,
         border_color=ft.Colors.WHITE,
         label_style=ft.TextStyle(color=ft.Colors.WHITE),
@@ -460,12 +544,21 @@ def crear_vendedor(page):
     #### REGISTRO EN DB
     
     def registro_en_db(e):
-        if not input_correo.value or not input_telefono.value or not input_contraseña.value:
-            print('Error: Todos los campos son obligatorios')
-            return # Detenemos la ejecución si faltan datos
+        if not all([input_propetario.value, input_negocio.value, input_direccion, input_correo.value, input_telefono.value, input_contraseña.value]):
+            mostrar_mensaje_resgitro(page, "Error: Todos los campos son obligatorios", ft.Colors.RED_400)
+            return
 
+        if not es_correo_valido(input_correo.value):
+            mostrar_mensaje_resgitro(page, "Formato de correo no válido (ej: usuario@correo.com)", ft.Colors.ORANGE_700)
+            return
+        
+        if not es_telefono_valido(input_telefono.value):
+            mostrar_mensaje_resgitro(page, "El teléfono debe contener solo números (8-15 dígitos)", ft.Colors.ORANGE_700)
+            return
+        
+        
         if correo_ya_existe(input_correo.value):
-            mostrar_mensaje_resgitro(page, "Este correo ya está registrado (Usuario/Vendedor)", ft.Colors.ORANGE_700)
+            mostrar_mensaje_resgitro(page, "Este correo ya está registrado", ft.Colors.ORANGE_700)
             return
         try:
             registro_vendedor_en_nube(
